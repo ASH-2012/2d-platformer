@@ -21,7 +21,7 @@ class AITacticalBrain:
         You are a game AI. Player data: {profile}.
         Output ONLY a JSON dictionary assigning tactical weights (1-10) to these attacks:
         "fire_blast", "spike_drop", "earthquake".
-        Example: {{"fire_blast": 8, "spike_drop": 2, "earthquake": 4}}
+        Example: {{"projectiles": 8, "spike_drop": 2, "earthquake": 4}}
         """
         
         try:

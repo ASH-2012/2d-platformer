@@ -58,7 +58,7 @@ platforms = [
     pygame.Rect(10357, 596, 218, 150),
     pygame.Rect(10687, 639, 400, 150),
     pygame.Rect(11219, 526, 796, 150),
-    pygame.Rect(12128, 490, 410, 150),
+    pygame.Rect(12128, 530, 410, 150),
     pygame.Rect(12628, 317, 183, 50),
     pygame.Rect(12923, 528, 657, 150),
     pygame.Rect(13584, 379, 180, 50),
@@ -249,8 +249,14 @@ while running:
         ("Dragon AI", dragon_boss)
     ]
     
+    active_bosses = [
+        ("Stage 1 Boss", boss, 30.0), 
+        ("Earthquake Golem", earth_boss, 50.0), 
+        ("Dragon AI", dragon_boss, 100.0)
+    ]
+    
     bars_drawn = 0 
-    for name, b in active_bosses:
+    for name, b, max_hp in active_bosses: # Add max_hp here
         if b.hp > 0:
             relative_x = b.rect.x - camera_scroll
             if -b.rect.width < relative_x < WIDTH: 
@@ -259,7 +265,8 @@ while running:
                 bar_x = (WIDTH // 2) - (bar_width // 2)
                 bar_y = HEIGHT - 50 - (bars_drawn * 60) 
                 
-                hp_percentage = max(0, b.hp) / 50.0 
+                # Dynamic percentage calculation
+                hp_percentage = max(0, b.hp) / max_hp 
                 
                 pygame.draw.rect(screen, (100, 0, 0), (bar_x, bar_y, bar_width, 20))
                 pygame.draw.rect(screen, (255, 165, 0), (bar_x, bar_y, int(bar_width * hp_percentage), 20))
@@ -279,8 +286,31 @@ while running:
     if player.hp <= 0:
         game_over_font = pygame.font.SysFont("Arial", 80, bold=True)
         game_over_text = game_over_font.render("GAME OVER", True, (255, 0, 0))
-        text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
         screen.blit(game_over_text, text_rect)
+        
+        # Add a restart prompt
+        restart_font = pygame.font.SysFont("Arial", 30, bold=True)
+        restart_text = restart_font.render("Press 'R' to Restart", True, (255, 255, 255))
+        restart_rect = restart_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
+        screen.blit(restart_text, restart_rect)
+        
+        # Listen for the restart key inside the main loop
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_r]:
+            # Reset player
+            player.hp = 100
+            player.rect.x = player.spawn_x
+            player.rect.y = player.spawn_y
+            player.vel_y = 0
+            # Reset bosses
+            boss.hp = 30
+            earth_boss.hp = 50
+            dragon_boss.hp = 100
+            # Clear stage
+            projectiles.clear()
+            # Reset AI trigger
+            ai_triggered = False
 
     pygame.display.flip()
     clock.tick(60)
