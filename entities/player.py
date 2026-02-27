@@ -4,7 +4,7 @@ class Player:
     def __init__(self, x, y):
         self.spawn_x = x
         self.spawn_y = y
-        self.rect = pygame.Rect(x, y, 50, 60)
+        self.rect = pygame.Rect(x, y, 70, 90)
         self.vel_y = 0
         self.is_jumping = False
         self.speed = 6

@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+import random
 
 # Importing from your new modular directory structure
 # You must ensure your Player, Boss, EarthBoss, Spike, and Projectile classes 
@@ -28,9 +29,9 @@ FLOOR_Y = HEIGHT - 110
 ai_brain = AITacticalBrain(model_name="phi3") 
 
 player = Player(100, FLOOR_Y - 60)
-boss = Boss(4222, FLOOR_Y - 90) 
-earth_boss = EarthBoss(8200, FLOOR_Y - 200)
-dragon_boss = DragonBoss(14180, FLOOR_Y - 250)
+boss = Boss(4122, FLOOR_Y - 350) 
+earth_boss = EarthBoss(8100, FLOOR_Y - 550)
+dragon_boss = DragonBoss(14080, FLOOR_Y - 700)
 
 # --- ASSET LOADING & SCALING ---
 ASSET_DIR = "assets"
@@ -62,11 +63,30 @@ except FileNotFoundError as e:
     sys.exit()
 
 platforms = [
-    pygame.Rect(0, FLOOR_Y, 610, 150), 
-    pygame.Rect(752, FLOOR_Y, 318, 150),     
-    pygame.Rect(1244, FLOOR_Y, 948, 150),    
-    pygame.Rect(2366, FLOOR_Y, 648, 150),    
-    pygame.Rect(3116, FLOOR_Y, 15000, 150), # Continuous floor for the rest of the map  
+    pygame.Rect(0, FLOOR_Y, 649, 150), 
+    pygame.Rect(805, FLOOR_Y, 327, 150),     
+    pygame.Rect(1300, FLOOR_Y, 958, 150),    
+    pygame.Rect(2426, FLOOR_Y, 650, 150),    
+    pygame.Rect(3173, FLOOR_Y, 1564, 150),
+    pygame.Rect(4857, 652, 4216, 150),
+    pygame.Rect(7802, 455, 120, 50),
+    pygame.Rect(7989, 383, 120, 50),
+    pygame.Rect(7886, 229, 120, 50),
+    pygame.Rect(9157, 500, 321, 150),
+    pygame.Rect(9518, 690, 120, 50),
+    pygame.Rect(9687, 565, 120, 50),
+    pygame.Rect(9853, 501, 398, 150),
+    pygame.Rect(10357, 596, 218, 150),
+    pygame.Rect(10687, 639, 400, 150),
+    pygame.Rect(11219, 526, 796, 150),
+    pygame.Rect(12128, 490, 410, 150),
+    pygame.Rect(12628, 317, 183, 50),
+    pygame.Rect(12923, 528, 657, 150),
+    pygame.Rect(13584, 379, 180, 50),
+    pygame.Rect(13845, 475, 180, 50),
+    pygame.Rect(13664, 636, 180, 50),
+    pygame.Rect(14061, 618, 940, 150)
+                
 ]
 
 spikes = []
@@ -86,6 +106,7 @@ ai_triggered = False # Prevents spamming the API
 
 # --- MAIN LOOP ---
 running = True
+dev_click_text = "DEV: Click anywhere"
 while running:
     # 1. INPUT & EVENT PUMP
     for event in pygame.event.get():
@@ -96,7 +117,7 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             running = False
 
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and player.hp > 0:
             if event.key == pygame.K_f:  
                 direction = 15 if player.facing_right else -15
                 projectiles.append(Projectile(player.rect.centerx, player.rect.centery, direction, True, (255, 100, 0)))
@@ -104,6 +125,16 @@ while running:
                 
             if event.key == pygame.K_SPACE and not player.is_jumping:
                 player_profile["total_jumps"] += 1 # TELEMETRY LOG
+            
+ # DEVELOPER TOOL: Get World Coordinates
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+          mouse_x, mouse_y = pygame.mouse.get_pos()
+          world_x = mouse_x + camera_scroll
+
+          # Update the screen text variable
+          dev_click_text = f"X: {world_x} | Y: {mouse_y}"
+          print(f"[DEV] Map Coordinate -> X: {world_x} | Y: {mouse_y}")
 
     # 2. CAMERA LOGIC
     true_scroll += (player.rect.x - (WIDTH // 2) - true_scroll) / 10
@@ -130,6 +161,10 @@ while running:
     # 4. GAME LOGIC UPDATES
     if player.hp > 0:
         player.move(platforms) # Note: move() needs to handle SPACEbar internally, but don't double-count jumps
+    else:
+        # The player is dead. Apply terminal gravity so they fall off the map.
+        player.vel_y += 0.8
+        player.rect.y += player.vel_y    
 
     if boss.hp > 0:
         pass # Add your Stage 1 boss update logic here
@@ -139,6 +174,21 @@ while running:
         
     # The Dragon Boss relies entirely on its internal Weighted Probability State Machine now
     dragon_boss.update(player, projectiles, spikes)
+
+    # Contact Damage & Knockback
+    # (Checking if the player's physical rect touches any boss rect)
+    if player.hp > 0:
+        for b in [boss, earth_boss, dragon_boss]:
+            if b.hp > 0 and player.rect.colliderect(b.rect):
+                player.hp -= 2 # Drain health rapidly while touching
+                
+                # Brutal Knockback: Throw the player away from the boss
+                if player.rect.centerx < b.rect.centerx:
+                    player.rect.x -= 30 # Knocked left
+                else:
+                    player.rect.x += 30 # Knocked right
+                
+                player.vel_y = -8 # Knocked slightly into the air
 
     # Collision & Projectile Math
     for proj in projectiles[:]:
@@ -173,37 +223,127 @@ while running:
 
     # 5. RENDERING (Clear screen, draw background, draw entities)
     screen.fill((135, 206, 235))
-    screen.blit(bg_img, (-camera_scroll, 0)) # Background is now active
 
-    # Draw Platforms (Leave as rects unless you have floor tiles ready)
+    # --- SCREEN SHAKE MATH ---
+    shake_x = 0
+    shake_y = 0
+    # If the boss is charging, generate violent random offsets
+    if earth_boss.hp > 0 and hasattr(earth_boss, 'is_charging') and earth_boss.is_charging:
+        shake_x = random.randint(-12, 12) 
+        shake_y = random.randint(-12, 12) 
+
+    # Apply shake to camera scroll for X, use shake_y directly for Y
+    render_scroll_x = camera_scroll + shake_x
+
+    # Draw Background
+    screen.blit(bg_img, (-render_scroll_x, shake_y)) 
+
+    # Draw Platforms
     for plat in platforms:
-        pygame.draw.rect(screen, (50, 200, 50), (plat.x - camera_scroll, plat.y, plat.width, plat.height))
+        pygame.draw.rect(screen, (50, 200, 50), (plat.x - render_scroll_x, plat.y + shake_y, plat.width, plat.height))
 
-   # Draw Player
+    # Draw Player (Preserving your flip logic)
     if not player.facing_right:
         flipped_player = pygame.transform.flip(player_img, True, False)
-        screen.blit(flipped_player, (player.rect.x - camera_scroll, player.rect.y))
+        screen.blit(flipped_player, (player.rect.x - render_scroll_x, player.rect.y + shake_y))
     else:
-        screen.blit(player_img, (player.rect.x - camera_scroll, player.rect.y))
+        screen.blit(player_img, (player.rect.x - render_scroll_x, player.rect.y + shake_y))
 
     # Draw Bosses
     if boss.hp > 0:
-        screen.blit(boss_img, (boss.rect.x - camera_scroll, boss.rect.y))
+        screen.blit(boss_img, (boss.rect.x - render_scroll_x, boss.rect.y + shake_y))
+        
     if earth_boss.hp > 0:
-        screen.blit(earth_boss_img, (earth_boss.rect.x - camera_scroll, earth_boss.rect.y))
+        # THE VISUAL CUE (Now perfectly syncing with the screen shake)
+        if hasattr(earth_boss, 'is_charging') and earth_boss.is_charging:
+            center_x = earth_boss.rect.centerx - render_scroll_x
+            center_y = earth_boss.rect.centery + shake_y
+            radius = (earth_boss.rect.width // 2) + 30 
+            pygame.draw.circle(screen, (255, 255, 0), (center_x, center_y), radius)
+            
+        screen.blit(earth_boss_img, (earth_boss.rect.x - render_scroll_x, earth_boss.rect.y + shake_y))
+
     if dragon_boss.hp > 0:
-        screen.blit(dragon_boss_img, (dragon_boss.rect.x - camera_scroll, dragon_boss.rect.y))
+        screen.blit(dragon_boss_img, (dragon_boss.rect.x - render_scroll_x, dragon_boss.rect.y + shake_y))
 
     # Draw Projectiles & Spikes
     for proj in projectiles:
-        pygame.draw.rect(screen, proj.color, (proj.rect.x - camera_scroll, proj.rect.y, proj.rect.width, proj.rect.height))
+        pygame.draw.rect(screen, proj.color, (proj.rect.x - render_scroll_x, proj.rect.y + shake_y, proj.rect.width, proj.rect.height))
     for spike in spikes:
-        screen.blit(spike_img, (spike.rect.x - camera_scroll, spike.rect.y))
-    
-    # Draw UI
-    hp_text = font.render(f"HP: {max(0, player.hp)} | AI Triggered: {ai_triggered}", True, (0,0,0))
-    screen.blit(hp_text, (20, 20))
+        screen.blit(spike_img, (spike.rect.x - render_scroll_x, spike.rect.y + shake_y))
 
+    # ==========================================
+    # --- DYNAMIC UI (Anchored to the screen) ---
+    # ==========================================
+    
+    # 1. Player Health Bar (Top Left)
+    # Background (Red - missing health)
+    pygame.draw.rect(screen, (150, 0, 0), (20, 20, 200, 20)) 
+    # Foreground (Green - current health). Assuming Max HP is 100. (100 * 2 = 200 pixels wide)
+    pygame.draw.rect(screen, (0, 255, 0), (20, 20, max(0, player.hp * 2), 20)) 
+    # White Outline
+    pygame.draw.rect(screen, (255, 255, 255), (20, 20, 200, 20), 2)
+
+    # 2. AI Trigger Text (Changed to stark white for visibility)
+    ai_text = font.render(f"AI Triggered: {ai_triggered}", True, (255, 255, 255))
+    screen.blit(ai_text, (20, 50))
+
+    # 3. Dynamic Boss Health Bars (Only draws if the boss is on screen)
+    active_bosses = [
+        ("Stage 1 Boss", boss), 
+        ("Earthquake Golem", earth_boss), 
+        ("Dragon AI", dragon_boss)
+    ]
+    
+    bars_drawn = 0 
+    for name, b in active_bosses:
+        if b.hp > 0:
+            # Check if boss is currently visible to the camera lens
+            relative_x = b.rect.x - camera_scroll
+            if -b.rect.width < relative_x < WIDTH: 
+                
+                bar_width = 400
+                bar_x = (WIDTH // 2) - (bar_width // 2)
+                # Draw at the bottom of the screen. Stack them if multiple bosses overlap.
+                bar_y = HEIGHT - 50 - (bars_drawn * 60) 
+                
+                # IMPORTANT: Assuming boss max HP is 50. Change 50.0 to your actual max HP.
+                hp_percentage = max(0, b.hp) / 50.0 
+                
+                # Dark Red Background
+                pygame.draw.rect(screen, (100, 0, 0), (bar_x, bar_y, bar_width, 20))
+                # Orange/Yellow Foreground 
+                pygame.draw.rect(screen, (255, 165, 0), (bar_x, bar_y, int(bar_width * hp_percentage), 20))
+                # White Outline
+                pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, 20), 2)
+                
+                # Render Boss Name above the bar
+                boss_text = font.render(name, True, (255, 255, 255))
+                screen.blit(boss_text, (bar_x, bar_y - 25))
+                
+                bars_drawn += 1
+
+
+# 4. Developer Coordinate Tool (Top Right)
+    # Ensure 'dev_click_text' is defined before your while loop: dev_click_text = "Click for Coords"
+        # 4. Developer Coordinate Tool (Top Left, Safe Zone)
+    try:
+        dev_text = font.render(dev_click_text, True, (255, 255, 0)) # Yellow text
+        # Hard-anchored under the AI text to bypass Windows scaling cutoff
+        screen.blit(dev_text, (20, 80)) 
+    except NameError:
+        pass # Prevents a crash if you forgot to add the variable in your event loop
+    except NameError:
+        pass # Prevents a crash if you forgot to add the variable in your event loop
+    
+    
+# --- GAME OVER OVERLAY ---
+    if player.hp <= 0:
+        # Massive red text in the center of the screen
+        game_over_font = pygame.font.SysFont("Arial", 80, bold=True)
+        game_over_text = game_over_font.render("GAME OVER", True, (255, 0, 0))
+        text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(game_over_text, text_rect)
     pygame.display.flip()
     clock.tick(60)
 

@@ -2,26 +2,34 @@ import pygame
 
 class Boss:
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 120, 90)
+        self.rect = pygame.Rect(x, y, 450, 350)
         self.hp = 30
         self.shoot_cooldown = 0
 
 class EarthBoss:
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 200, 200)
+        self.rect = pygame.Rect(x, y, 450, 450)
         self.hp = 50
         self.attack_timer = 0
+        self.is_charging = False # New state variable
 
     def update(self, player):
         if self.hp > 0 and abs(player.rect.x - self.rect.x) < 800:
             self.attack_timer += 1
-            if self.attack_timer >= 180:
-                print("STAGE 2 BOSS: EARTHQUAKE SLAM!")
-                if not player.is_jumping:
+            
+            # The Tell: 1 second (60 frames) before the attack hits
+            if self.attack_timer == 180:
+                self.is_charging = True
+                print("[VISUAL CUE] EARTH BOSS IS GLOWING YELLOW - PREPARE TO JUMP!")
+            
+            # The Strike: Hits at 270 frames
+            if self.attack_timer >= 270:
+                self.is_charging = False
+                
+                # Check if the player is physically airborne, not just if they pressed jump
+                if player.vel_y == 0: 
                     player.hp -= 15
-                    print("PLAYER TOOK EARTHQUAKE DAMAGE!")
-                else:
-                    print("PLAYER DODGED THE EARTHQUAKE!")
+                    
                 self.attack_timer = 0
 
 class Spike:

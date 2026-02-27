@@ -5,7 +5,7 @@ from entities.enemies import Projectile, Spike
 
 class DragonBoss:
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 250, 250)
+        self.rect = pygame.Rect(x, y, 700, 600)
         self.hp = 100
         
         # The baseline stats before the AI DM injects new weights
