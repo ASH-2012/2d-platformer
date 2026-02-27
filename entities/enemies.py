@@ -4,7 +4,27 @@ class Boss:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, 450, 350)
         self.hp = 30
-        self.shoot_cooldown = 0
+        self.attack_timer = 0
+
+    def update(self, player, projectiles_list):
+        if self.hp > 0 and abs(player.rect.x - self.rect.x) < 800:
+            self.attack_timer += 1
+            
+            # Bottom Array: Fires at 60 frames
+            if self.attack_timer == 60:
+                spawn_x = self.rect.left
+                for offset in [0, 25, 50]: # Spawns a 3-bullet wall
+                    spawn_y = self.rect.bottom - 50 - offset
+                    projectiles_list.append(Projectile(spawn_x, spawn_y, -8, False, (169, 169, 169)))
+            
+            # Top Array: Fires at 120 frames (1 second later to catch jumpers)
+            elif self.attack_timer >= 120:
+                spawn_x = self.rect.left
+                for offset in [0, 25, 50]: 
+                    spawn_y = self.rect.bottom - 220 - offset
+                    projectiles_list.append(Projectile(spawn_x, spawn_y, -8, False, (169, 169, 169)))
+                
+                self.attack_timer = 0 # Reset the cycle
 
 class EarthBoss:
     def __init__(self, x, y):
@@ -36,7 +56,7 @@ class Spike:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, 30, 80)
         self.falling = False
-        self.speed = 12
+        self.speed = 14
 
     def update(self, player):
         # Tripwire logic
@@ -51,8 +71,8 @@ class Spike:
             self.rect.y = 3000 # Teleport away out of bounds after hit
 
 class Projectile:
-    def __init__(self, x, y, speed, is_player, color):
-        self.rect = pygame.Rect(x, y, 15, 15)
+    def __init__(self, x, y, speed, is_player, color, width=15, height=15):
+        self.rect = pygame.Rect(x, y, width, height)
         self.speed = speed
         self.is_player = is_player
         self.color = color

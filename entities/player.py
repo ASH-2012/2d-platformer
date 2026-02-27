@@ -23,7 +23,7 @@ class Player:
             self.facing_right = True
             
         if keys[pygame.K_SPACE] and not self.is_jumping:
-            self.vel_y = -16
+            self.vel_y = -20
             self.is_jumping = True
 
         # Gravity
@@ -49,7 +49,7 @@ class Player:
         self.rect.y += dy
 
         # Death Pit Respawn
-        if self.rect.y > 2000:
+        if self.rect.y > 2000 and self.hp > 0:
             self.hp -= 5
             self.rect.x = self.spawn_x
             self.rect.y = self.spawn_y

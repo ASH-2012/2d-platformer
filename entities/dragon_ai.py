@@ -22,6 +22,10 @@ class DragonBoss:
         
         # Your hardcoded ultimate ability (Every 10 seconds / 600 frames)
         self.ultimate_timer = 600 
+        
+        # --- NEW: SCREEN SHAKE TRACKERS ---
+        self.is_shaking = False
+        self.shake_timer = 0
 
     def update_tactics(self, new_tactics):
         """Called by the background AI thread to overwrite the boss's brain."""
@@ -44,6 +48,12 @@ class DragonBoss:
         if self.hp <= 0 or abs(player.rect.x - self.rect.x) > 900:
             return # Don't fight if dead or player is too far away
 
+        # --- SCREEN SHAKE DURATION HANDLER ---
+        if self.is_shaking:
+            self.shake_timer -= 1
+            if self.shake_timer <= 0:
+                self.is_shaking = False
+
         # --- 1. THE HARDCODED ULTIMATE ---
         self.ultimate_timer -= 1
         if self.ultimate_timer <= 0:
@@ -51,8 +61,9 @@ class DragonBoss:
             # Spawn a massive, slow projectile covering half the screen
             spawn_x = self.rect.left
             spawn_y = self.rect.centery - 100
-            # You will need to add logic in your Projectile class to handle a massive size/damage
-            projectiles_list.append(Projectile(spawn_x, spawn_y, -4, False, (255, 100, 0))) 
+            
+            # Massive Hitbox: Passing 150 width and 150 height to the Projectile class
+            projectiles_list.append(Projectile(spawn_x, spawn_y, -4, False, (255, 100, 0), 150, 150)) 
             self.ultimate_timer = 600 # Reset 10-second timer
             return # Skip standard attacks this frame
 
@@ -69,6 +80,7 @@ class DragonBoss:
             # Shoot a fast projectile directly at the player's height
             spawn_x = self.rect.left
             spawn_y = player.rect.centery 
+            # Default 15x15 size will be used here since we omit the dimensions
             projectiles_list.append(Projectile(spawn_x, spawn_y, -12, False, (255, 50, 50)))
             self.action_timer = 60 # 1 second cooldown for fast attacks
             
@@ -78,8 +90,12 @@ class DragonBoss:
             self.action_timer = 90 # 1.5 second cooldown
             
         elif self.current_state == "earthquake":
-            # Punish the player if they are on the ground
-            if not player.is_jumping:
+            # TRIGGER THE SHAKE
+            self.is_shaking = True
+            self.shake_timer = 20 # Shake the screen violently for 20 frames
+            
+            # Punish the player if they are physically on the ground
+            if player.vel_y == 0:
                 player.hp -= 15
                 print("PLAYER TOOK EARTHQUAKE DAMAGE!")
             else:
