@@ -31,11 +31,20 @@ class EarthBoss:
         self.rect = pygame.Rect(x, y, 450, 450)
         self.hp = 50
         self.attack_timer = 0
+        self.boulder_timer = 0
         self.is_charging = False # New state variable
 
-    def update(self, player):
+    def update(self, player, projectiles_list):
         if self.hp > 0 and abs(player.rect.x - self.rect.x) < 800:
             self.attack_timer += 1
+            self.boulder_timer += 1
+
+            if self.boulder_timer >= 90:
+                spawn_x = self.rect.centerx
+                spawn_y = self.rect.top + 100
+                projectiles_list.append(Projectile(spawn_x, spawn_y, -12, False, (139, 69, 19), 30, 30))
+                self.boulder_timer = 0
+
             
             # The Tell: 1 second (60 frames) before the attack hits
             if self.attack_timer == 180:

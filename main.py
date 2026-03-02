@@ -122,6 +122,25 @@ while running:
             dev_click_text = f"X: {world_x} | Y: {mouse_y}"
             print(f"[DEV] Map Coordinate -> X: {world_x} | Y: {mouse_y}")
 
+        if event.type == pygame.KEYDOWN:
+            # --- THE HARD RESET SWITCH ---
+            if event.key == pygame.K_r:
+                print("[SYSTEM] Executing State Reset...")
+                player = Player(100, FLOOR_Y - 60)
+                boss = Boss(4122, FLOOR_Y - 350) 
+                earth_boss = EarthBoss(8100, FLOOR_Y - 550)
+                dragon_boss = DragonBoss(14080, FLOOR_Y - 700)
+                spikes = [
+                    Spike(4887, 85), Spike(5129, 65), Spike(5364, 50), Spike(5433, 70), Spike(5633, 94),
+                    Spike(5942, 70), Spike(6365, 78), Spike(6135, 62), Spike(6642, 49), Spike(6840, 56),
+                    Spike(7094, 83), Spike(7415, 68), Spike(7585, 60), Spike(7843, 82), Spike(7642, 79), Spike(8120, 51)
+                ]
+                projectiles.clear()
+                player_profile = {"total_jumps": 0, "shots_fired": 0, "shots_hit": 0}
+                ai_triggered = False
+                true_scroll = 0
+                camera_scroll = 0 
+
     true_scroll += (player.rect.x - (WIDTH // 2) - true_scroll) / 10
     camera_scroll = max(0, int(true_scroll))
 
@@ -149,7 +168,7 @@ while running:
         boss.update(player, projectiles) # CORRECTED: Stage 1 Boss Brain Activated
         
     if earth_boss.hp > 0:
-        earth_boss.update(player)
+        earth_boss.update(player, projectiles)
         
     dragon_boss.update(player, projectiles, spikes)
 
